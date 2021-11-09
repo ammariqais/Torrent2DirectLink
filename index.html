@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<form>
+    <input type="text" id="file" style="width: 600px;height: 200px">
+    <input type="button" value="Start Download" onclick="SendTorrent()">
+</form>
+
+<div>
+    <h3 id="error"></h3>
+    <p id="progress"></p>
+    <p id="peers"></p>
+    <p id="download_speed"></p>
+    <p id="upload_speed"></p>
+</div>
+
+<br>
+<div>
+    <ol>
+
+    </ol>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io();
+    function SendTorrent(){
+        console.log("SendTorrent")
+        socket.emit("startDownload",$("#file").val());
+    }
+
+    socket.on("action",(action)=>{
+       if(action === "onDownloading"){
+           console.log("remove form")
+           $("form").remove();
+       }
+    });
+
+    socket.on("onDownloading",(info)=>{
+        console.log("rec p : "+info["progress"]);
+        $("#progress").text("Downloaded Progress : "+info["progress"]);
+        $("#peers").text(info["peers"]+ " Peers");
+        $("#download_speed").text("Downloading Speed : " + prettyBytes(info["download_speed"]));
+        $("#upload_speed").text("Uploading Speed : "+ prettyBytes(info["upload_speed"]));
+    });
+
+    socket.on("error",(error)=>{
+        $("#error").text(error);
+    });
+
+    socket.on("getFile",(fileInfo)=>{
+        var link = fileInfo["link"].toString();
+        $("ol").append("<li><a href="+link+">"+fileInfo["name"]+"</a></li>");
+    });
+
+    function prettyBytes(num) {
+        var exponent, unit, neg = num < 0, units = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+        if (neg) num = -num
+        if (num < 1) return (neg ? '-' : '') + num + ' B'
+        exponent = Math.min(Math.floor(Math.log(num) / Math.log(1000)), units.length - 1)
+        num = Number((num / Math.pow(1000, exponent)).toFixed(2))
+        unit = units[exponent]
+        return (neg ? '-' : '') + num + ' ' + unit
+    }
+</script>
+</body>
+</html>
